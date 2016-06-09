@@ -3,14 +3,18 @@
 namespace AppBundle\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Validator\Constraints as Assert;
+
 
 /**
  * User
  *
+ * @property string salt
  * @ORM\Table(name="user")
  * @ORM\Entity(repositoryClass="AppBundle\Repository\UserRepository")
  */
-class User
+class User implements UserInterface, \Serializable
 {
     /**
      * @var int
@@ -57,31 +61,38 @@ class User
     private $login;
 
     /**
-     * @var string
+     * @Assert\NotBlank()
+     * @Assert\Length(max=4096)
+     */
+    private $plainPassword;
+
+    /**
+     * The below length depends on the "algorithm" you use for encoding
+     * the password, but this works well with bcrypt.
      *
-     * @ORM\Column(name="Password", type="string", length=255)
+     * @ORM\Column(type="string", length=64)
      */
     private $password;
 
     /**
-     * @var bool
+     * @var string
      *
-     * @ORM\Column(name="Admin", type="boolean")
+     * @ORM\Column(name="Roles", type="string", length=255)
      */
-    private $admin;
+    private $roles;
 
+    /**
+     * @ORM\Column(name="is_active", type="boolean")
+     */
+    private $isActive;
+    
     /**
      * @var \DateTime
      *
      * @ORM\Column(name="Account_Creation_Date", type="datetime")
      */
     private $accountCreationDate;
-
-    public function __construct()
-    {
-        $this->accountCreationDate = new \DateTimeZone('Now');
-    }
-
+    
     /**
      * @var Command
      *
@@ -91,6 +102,13 @@ class User
      *
      */
     private $Command;
+
+    public function __construct()
+    {
+        $this->roles = ('ROLE_USER');
+        $this->isActive = true;
+        $this->accountCreationDate = new \DateTime('Now');
+    }
 
 
     /**
@@ -248,27 +266,24 @@ class User
     }
 
     /**
-     * Set admin
+     * Get salt
      *
-     * @param boolean $admin
-     *
-     * @return User
+     * @return string
      */
-    public function setAdmin($admin)
+    public function getSalt()
     {
-        $this->admin = $admin;
-
-        return $this;
+        return null;
+        #salt;
     }
 
     /**
-     * Get admin
+     * Get roles
      *
-     * @return bool
+     * @return string
      */
-    public function getAdmin()
+    public function getRoles()
     {
-        return $this->admin;
+        return array('ROLE_USER');
     }
 
     /**
@@ -302,7 +317,7 @@ class User
      *
      * @return User
      */
-    public function addCommand(\AppBundle\Entity\Command $command)
+    public function addCommand(Command $command)
     {
         $this->Command[] = $command;
 
@@ -314,7 +329,7 @@ class User
      *
      * @param \AppBundle\Entity\Command $command
      */
-    public function removeCommand(\AppBundle\Entity\Command $command)
+    public function removeCommand(Command $command)
     {
         $this->Command->removeElement($command);
     }
@@ -327,5 +342,97 @@ class User
     public function getCommand()
     {
         return $this->Command;
+    }
+
+    public function eraseCredentials()
+    {
+    }
+
+    /** @see \Serializable::serialize() */
+    public function serialize()
+    {
+        return serialize(array(
+            $this->id,
+            $this->login,
+            $this->password,
+            // see section on salt below
+            // $this->salt,
+        ));
+    }
+
+    /** @see \Serializable::unserialize()
+     * @param string $serialized
+     */
+    public function unserialize($serialized)
+    {
+        list (
+            $this->id,
+            $this->login,
+            $this->password,
+            // see section on salt below
+            // $this->salt
+            ) = unserialize($serialized);
+    }
+
+    /**
+     * Set salt
+     *
+     * @param string $salt
+     *
+     * @return User
+     */
+    public function setSalt($salt)
+    {
+        $this->salt = $salt;
+
+        return $this;
+    }
+
+    /**
+     * Set roles
+     *
+     * @param string $roles
+     *
+     * @return User
+     */
+    public function setRoles($roles)
+    {
+        $this->roles = $roles;
+
+        return $this;
+    }
+
+    /**
+     * Set isActive
+     *
+     * @param boolean $isActive
+     *
+     * @return User
+     */
+    public function setIsActive($isActive)
+    {
+        $this->isActive = $isActive;
+
+        return $this;
+    }
+
+    /**
+     * Get isActive
+     *
+     * @return boolean
+     */
+    public function getIsActive()
+    {
+        return $this->isActive;
+    }
+
+    public function getPlainPassword()
+    {
+        return $this->plainPassword;
+    }
+
+    public function setPlainPassword($password)
+    {
+        $this->plainPassword = $password;
     }
 }
